@@ -6,8 +6,13 @@
         rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
         crossorigin="anonymous">
   <title>SUM-CALCULATOR</title>
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
   <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
   <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script type='text/javascript' src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-loading-overlay/2.1.7/loadingoverlay.min.js"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 </head>
 <body>
 <div id="app">
@@ -27,36 +32,6 @@
                   aria-describedby="emailHelp"
                   v-model="name"
                 >
-              </div>
-              <div class="form-group">
-                <label for="name">Gender</label>
-                <select
-                  class="form-control"
-                  v-model="gender"
-                >
-                  <option value="male">male</option>
-                  <option value="female">female</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="email">E-mail</label>
-                <input
-                  type="email"
-                  class="form-control"
-                  id="email"
-                  aria-describedby="emailHelp"
-                  v-model="email"
-                >
-              </div>
-
-              <div class="form-group">
-                <label for="address">Address</label>
-                <textarea
-                  id="address"
-                  v-model="address"
-                  class="form-control"
-                  rows="5"
-                ></textarea>
               </div>
             </form>
             <button
@@ -84,22 +59,16 @@
             <tr>
               <th>ID</th>
               <th>Name</th>
-              <th>Gender</th>
-              <th>Email</th>
-              <th>Address</th>
               <th>Action</th>
             </tr>
             </thead>
             <tbody>
             <tr
-              v-for="(item, index) in this.student_list"
+              v-for="(item, index) in this.res_data"
               :key="'index_'+index"
             >
               <td>{{ index + 1 }}</td>
               <td>{{ item.name }}</td>
-              <td>{{ item.gender }}</td>
-              <td>{{ item.email }}</td>
-              <td>{{ item.address }}</td>
               <td>
                 <button
                   @click="editData(item)"
@@ -108,7 +77,7 @@
                   Edit
                 </button>
                 <button
-                  @click="deleteData(index)"
+                  @click="deleteData(item)"
                   class="btn btn-sm btn-danger"
                 >
                   Delete
@@ -119,121 +88,137 @@
           </table>
         </div>
       </div>
-
-      <div class="col-md-12">
-        <br>
-        <button @click="getDataFromAPI">Get Data</button>
-        <hr>
-      </div>
-      <div
-        v-for="(item,index) in product_list"
-        :key="'product_list_'+index"
-        class="col-md-3"
-      >
-        <div class="card">
-          <h3>{{ item.title }}</h3>
-          <h4>{{ item.description }}</h4>
-          <h5>{{ item.price }}</h5>
-          <img :src="item.image" width="100px" height="200px">
-        </div>
-      </div>
     </div>
-
   </div>
 </div>
 </body>
 
 <script>
-  var vue_obj = new Vue({
-    el: '#app',
-    data: {
-      action: 'add',
-      name: null,
-      gender: 'female',
-      email: null,
-      address: null,
-      student_list: [],
-      product_list: [],
-    },
-    methods: {
-      saveData() {
-        if (this.name == null) {
-          alert('empty name')
-          return
+    var vue_obj = new Vue({
+        el: '#app',
+        data: {
+            action: 'add',
+            name: null,
+            gender: 'female',
+            email: null,
+            address: null,
+            student_list: [],
+            product_list: [],
+            res_data: []
+        },
+        methods: {
+            saveData() {
+                if (this.name == null) {
+                    alert('empty name')
+                    return
+                }
+
+                this.resetForm()
+            },
+            editData(item) {
+                this.id = item.id
+                this.name = item.name
+                this.email = item.email
+                this.address = item.address
+                this.gender = item.gender
+
+                this.action = 'edit'
+            },
+            setEditData() {
+                let id = this.id
+                let found = this.student_list.find(obj => {
+                    return obj.id == id
+                })
+                found.name = this.name
+                found.email = this.email
+                found.address = this.address
+                found.gender = this.gender
+
+                this.action = 'add'
+
+                // reset form data
+                this.resetForm()
+
+            },
+            deleteData(item) {
+                let smg = `Are you sure? To delete ${item.name}`
+                this.sound('error')
+                Swal.fire({
+                    title: smg,
+                    text: "You won't be able to revert this!",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonColor: "#3085d6",
+                    cancelButtonColor: "#d33",
+                    confirmButtonText: "Yes, delete it!"
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.LoadingOverlay("show");
+                        let url = "http://127.0.0.1:8001/api/deleteRecord"
+                        axios.post(url, {
+                            id: item.id
+                        }).then(response => {
+                            this.sound('success')
+                            Toastify({
+                                text: "This is a toast",
+                                duration: 3000,
+                                destination: "https://github.com/apvarun/toastify-js",
+                                newWindow: true,
+                                close: true,
+                                gravity: "top", // `top` or `bottom`
+                                position: "right", // `left`, `center` or `right`
+                                stopOnFocus: true, // Prevents dismissing of toast on hover
+                                style: {
+                                    background: "linear-gradient(to right, #00b09b, #96c93d)",
+                                },
+                                onClick: function () {
+                                } // Callback after click
+                            }).showToast();
+                            this.res_data = response.data
+                            $.LoadingOverlay("hide");
+                        }).catch(function (error) {
+                            alert('error: ' + error.message)
+                        });
+
+
+                    }
+                });
+            },
+            resetForm() {
+                this.id = null
+                this.name = null
+                this.email = null
+                this.address = null
+                this.gender = 'male'
+            },
+            sound(type) {
+                let click = new Audio('/Users/pinchai/vue_cdn_class/sound/click.mp3');
+                let success = new Audio('/Users/pinchai/vue_cdn_class/sound/success.mp3');
+                let error = new Audio('/Users/pinchai/vue_cdn_class/sound/error.mp3');
+                if (type == 'click') {
+                    click.play()
+                }
+                if (type == 'success') {
+                    success.play()
+                }
+                if (type == 'error') {
+                    error.play()
+                }
+            },
+        },
+        created() {
+            $.LoadingOverlay("show");
+            let url = "http://127.0.0.1:8001/api/getCategory"
+            axios.get(url, {}).then(response => {
+                this.res_data = response.data
+                $.LoadingOverlay("hide");
+            }).catch(function (error) {
+                alert('error: ' + error.message)
+            });
+
+        },
+        mounted() {
         }
-        if (this.email == null) {
-          alert('empty email')
-          return
-        }
-        if (this.address == null) {
-          alert('empty address')
-          return
-        }
-
-        let id = Math.floor(Math.random() * 101); // Generates a random integer between 0 and 100
-        this.student_list.push(
-          {
-            id: id,
-            name: this.name,
-            email: this.email,
-            address: this.address,
-            gender: this.gender,
-          }
-        )
-
-        this.resetForm()
-      },
-      editData(item) {
-        this.id = item.id
-        this.name = item.name
-        this.email = item.email
-        this.address = item.address
-        this.gender = item.gender
-
-        this.action = 'edit'
-      },
-      setEditData() {
-        let id = this.id
-        let found = this.student_list.find(obj => {
-          return obj.id == id
-        })
-        found.name = this.name
-        found.email = this.email
-        found.address = this.address
-        found.gender = this.gender
-
-        this.action = 'add'
-
-        // reset form data
-        this.resetForm()
-
-      },
-      deleteData(index) {
-        this.student_list.splice(index, 1);
-      },
-      resetForm() {
-        this.id = null
-        this.name = null
-        this.email = null
-        this.address = null
-        this.gender = 'male'
-      },
-      getDataFromAPI(){
-        let url = "https://fakestoreapi.com/products"
-        axios.get(url, {}).then(response => {
-          this.product_list = response.data
-
-        }).catch(function (error) {
-          alert('error: ' + error.message)
-        });
-
-      }
-    },
-    created() {
-
-    },
-    mounted() {
-    }
-  });
+    });
 </script>
 </html>
