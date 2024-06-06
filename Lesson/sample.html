@@ -140,10 +140,10 @@
                 this.resetForm()
 
             },
-            deleteData(item) {
+           async deleteData(item) {
                 let smg = `Are you sure? To delete ${item.name}`
                 this.sound('error')
-                Swal.fire({
+               await Swal.fire({
                     title: smg,
                     text: "You won't be able to revert this!",
                     icon: "warning",
@@ -183,6 +183,27 @@
 
                     }
                 });
+
+                // send notification
+                $.LoadingOverlay("show");
+                let name = item.name
+                const date = new Date().toISOString().slice(0, 10); // Formats date as YYYY-MM-DD
+                const html = `<strong>❌ Product: ${name}</strong>
+<strong>⏰ Date Time: ${date}</strong>\n
+<strong>😀 Delete By: Dara</strong>
+`;
+                let toked = '7187084464:AAFjq4AWD8Ql57BU9KHM8UMSf-SbPxrkWy8'
+                let chat_id = '@st11_12_channel'
+                // let chat_id = '5795700526'
+                let url = `https://api.telegram.org/bot${toked}/sendMessage?chat_id=${chat_id}&text=${encodeURIComponent(html)}&parse_mode=HTML`
+                axios.get(url, {}).then(response => {
+                    // this.res_data = response.data
+                    $.LoadingOverlay("hide");
+                }).catch(function (error) {
+                    alert('error: ' + error.message)
+                });
+
+
             },
             resetForm() {
                 this.id = null
